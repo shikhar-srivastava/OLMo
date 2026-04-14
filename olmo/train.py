@@ -1229,6 +1229,14 @@ class Trainer:
                     if should_log_this_step:
                         # Speed metrics.
                         metrics.update(speed_monitor.check())
+                        # ETA estimate derived from per-device tokens/s scaled to all devices.
+                        tps = metrics.get("throughput/device/tokens_per_second")
+                        if tps is not None and tps > 0:
+                            total_tps = tps * get_world_size()
+                            tokens_remaining = max(self.max_tokens - self.global_train_tokens_seen, 0)
+                            eta_seconds = tokens_remaining / total_tps
+                            metrics["throughput/eta_seconds"] = eta_seconds
+                            metrics["throughput/eta_hours"] = eta_seconds / 3600.0
                         # System metrics.
                         metrics.update(self.system_metrics())
                         # Learning rate metrics.
@@ -1237,8 +1245,17 @@ class Trainer:
                     # Log metrics to console.
                     if self.global_step % self.cfg.console_log_interval == 0:
                         if get_global_rank() == 0:
+                            # Build a human-readable ETA tag for the console prefix.
+                            eta_h = metrics.get("throughput/eta_hours")
+                            if eta_h is not None:
+                                if eta_h >= 1.0:
+                                    eta_str = f", eta={eta_h:.1f}h"
+                                else:
+                                    eta_str = f", eta={eta_h * 60:.0f}m"
+                            else:
+                                eta_str = ""
                             self.log_metrics_to_console(
-                                f"[step={self.global_step}/{self.max_steps},epoch={epoch}]",
+                                f"[step={self.global_step}/{self.max_steps},epoch={epoch}{eta_str}]",
                                 metrics,
                             )
                         else:

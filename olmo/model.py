@@ -173,6 +173,10 @@ class LayerNormBase(nn.Module):
             return LayerNorm(config, size=size, low_precision=True, **kwargs)
         elif config.layer_norm_type == LayerNormType.rms:
             return RMSLayerNorm(config, size=size, **kwargs)
+        elif config.layer_norm_type == LayerNormType.lns:
+            # LNS uses RMSNorm as its underlying normalizer; the depth-dependent
+            # scaling factor (1/sqrt(layer_id+1)) is applied in each block's forward().
+            return RMSLayerNorm(config, size=size, **kwargs)
         else:
             raise NotImplementedError(f"Unknown LayerNorm type: '{config.layer_norm_type}'")
 
@@ -748,6 +752,10 @@ class OLMoSequentialBlock(OLMoBlock):
                 h = self._activation_checkpoint_fn(self.attn_norm, x)
             else:
                 h = self.attn_norm(x)
+            # LNS: scale normalized output by 1/sqrt(layer_id + 1) before the sublayer.
+            # layer_id=0 → scale=1.0; deeper layers are progressively suppressed.
+            if self.config.layer_norm_type == LayerNormType.lns:
+                h = h * (1.0 / math.sqrt(self.layer_id + 1))
         else:
             h = x
 
@@ -802,6 +810,9 @@ class OLMoSequentialBlock(OLMoBlock):
                 x = self._activation_checkpoint_fn(self.ff_norm, x)  # type: ignore
             else:
                 x = self.ff_norm(x)
+            # LNS: same depth-dependent scaling as the attention pre-norm path.
+            if self.config.layer_norm_type == LayerNormType.lns:
+                x = x * (1.0 / math.sqrt(self.layer_id + 1))
 
         x = self.ff_proj(x)
 
@@ -933,6 +944,9 @@ class OLMoLlamaBlock(OLMoBlock):
         #  - for multi-query attn q: (batch_size, seq_len, d_model)
         #                      k, v: (batch_size, seq_len, d_model // n_heads)
         x_normed = self.attn_norm(x)
+        # LNS: scale normalized output by 1/sqrt(layer_id + 1) before attention.
+        if self.config.layer_norm_type == LayerNormType.lns:
+            x_normed = x_normed * (1.0 / math.sqrt(self.layer_id + 1))
         q = self.q_proj(x_normed)
         k = self.k_proj(x_normed)
         v = self.v_proj(x_normed)
@@ -965,6 +979,9 @@ class OLMoLlamaBlock(OLMoBlock):
             x = self._activation_checkpoint_fn(self.ff_norm, x)  # type: ignore
         else:
             x = self.ff_norm(x)
+        # LNS: same depth-dependent scaling as the attention pre-norm path.
+        if self.config.layer_norm_type == LayerNormType.lns:
+            x = x * (1.0 / math.sqrt(self.layer_id + 1))
         x = self.ff_proj(x)
         if self._activation_checkpoint_fn is not None:
             x = self._activation_checkpoint_fn(self.act, x)  # type: ignore

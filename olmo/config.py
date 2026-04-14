@@ -183,6 +183,16 @@ class LayerNormType(StrEnum):
     probably the fastest implementation.
     """
 
+    lns = "lns"
+    """
+    LayerNorm Scaling (LNS): pre-normalization using RMSNorm with a layer-depth-dependent
+    scale factor of ``1 / sqrt(layer_id + 1)`` applied to the normalized output before each
+    sublayer (attention and feed-forward). Shallower layers (layer_id=0) receive a scale of
+    1.0 while deeper layers are progressively suppressed, which stabilises large-activation
+    dynamics without adding learnable parameters.  The norm affine weights are controlled by
+    the usual ``layer_norm_with_affine`` config flag.
+    """
+
 
 class ActivationType(StrEnum):
     gelu = "gelu"
