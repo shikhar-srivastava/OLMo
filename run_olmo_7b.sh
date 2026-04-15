@@ -16,9 +16,9 @@
 #
 # Memory profile (8× A100 80GB, FSDP):
 #   Static (params+grads+Adam sharded across 8): ~14 GB/GPU
-#   Activations at microbatch=8 (seq=2048):      ~22 GB/GPU
-#   Estimated peak:                               ~36 GB/GPU  (44% of 80 GB)
-#   grad_accum_steps = 2048 / (8 micro × 8 GPUs) = 32
+#   Activations at microbatch=4 (seq=2048):      ~11 GB/GPU
+#   Estimated peak:                               ~25 GB/GPU  (31% of 80 GB)
+#   grad_accum_steps = 2048 / (4 micro × 8 GPUs) = 64
 #
 # Usage:
 #   ./run_olmo_7b.sh <norm_type> [master_port]
@@ -108,7 +108,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration=2e10T \
-        --device_train_microbatch_size=8
+        --device_train_microbatch_size=4
 
 echo ""
 echo "=========================================="
