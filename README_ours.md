@@ -1,5 +1,49 @@
 # OLMo — Our Modifications
 
+## Environment Setup
+
+Create the `olmo` conda environment with Python 3.11 and install all dependencies:
+
+```bash
+# 1. Create the base environment
+conda create -n olmo python=3.11 -c conda-forge
+conda activate olmo
+
+# 2. Install PyTorch with CUDA 12.4 (matches H100/L40S driver stack ≥ 525)
+pip install torch==2.6.0+cu124 torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu124
+
+# 3. Install the OLMo package in editable mode (from repo root)
+pip install -e '.[all]'
+
+# 4. Install remaining runtime dependencies
+pip install \
+    wandb==0.26.0 \
+    omegaconf==2.3.0 \
+    rich==13.9.4 \
+    cached_path==1.8.10 \
+    tokenizers==0.22.2 \
+    transformers==5.5.4 \
+    datasets==4.8.4 \
+    boto3==1.42.89 \
+    requests==2.33.1 \
+    tqdm==4.67.3 \
+    pyyaml==6.0.3
+```
+
+Key versions pinned in this environment:
+
+| Package | Version |
+|---|---|
+| Python | 3.11.15 |
+| PyTorch | 2.6.0+cu124 |
+| CUDA toolkit | 12.4 (driver ≥ 525, supports H100 and L40S) |
+| ai2-olmo | 0.6.0 (editable install) |
+| transformers | 5.5.4 |
+| wandb | 0.26.0 |
+| omegaconf | 2.3.0 |
+| triton | 3.2.0 |
+
 ## LayerNorm Scaling (LNS)
 
 A new normalization variant `lns` was added to `olmo/config.py` (`LayerNormType.lns`) and implemented in `olmo/model.py`. LNS uses RMSNorm as its base but applies a depth-dependent scale factor of `1 / sqrt(layer_id + 1)` to the normalized output before both the attention and feed-forward sublayers in `OLMoSequentialBlock` and `OLMoLlamaBlock`. This is selected via `--model.layer_norm_type=lns`.
