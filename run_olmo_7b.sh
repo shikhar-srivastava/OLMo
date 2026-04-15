@@ -1,6 +1,8 @@
 #!/bin/bash
 #
-# Run OLMo 7B training on 4 GPUs for a given norm type.
+# Run OLMo 7B training on 8 A100 80GB GPUs (single node) for a given norm type.
+#
+# Hardware: 1 node × 8 A100 80GB, FSDP (by_block) shards across all 8 GPUs.
 #
 # Config selection (in priority order):
 #   1. configs/official-0724/OLMo-7B-local.yaml  – locally-downloaded shards (no streaming)
@@ -12,9 +14,11 @@
 #       --data-dir /scratch/ssrivas9/datasets/olmo-data \
 #       --target-tokens 40_000_000_000
 #
-# NOTE: The 7B model uses FSDP with wrapping_strategy=by_block. Running on 4 GPUs
-# is memory-intensive. If you encounter OOM, reduce device_train_microbatch_size
-# below the default of 2 by adding: --device_train_microbatch_size=1
+# Memory profile (8× A100 80GB, FSDP):
+#   Static (params+grads+Adam sharded across 8): ~14 GB/GPU
+#   Activations at microbatch=8 (seq=2048):      ~22 GB/GPU
+#   Estimated peak:                               ~36 GB/GPU  (44% of 80 GB)
+#   grad_accum_steps = 2048 / (8 micro × 8 GPUs) = 32
 #
 # Usage:
 #   ./run_olmo_7b.sh <norm_type> [master_port]
@@ -80,7 +84,7 @@ else
 fi
 
 echo "=========================================="
-echo "OLMo 7B training on 4 GPUs"
+echo "OLMo 7B training on 8× A100 80GB"
 echo "=========================================="
 echo "Norm type  : ${norm_type}  (model.layer_norm_type=${olmo_norm_type})"
 echo "Run name   : ${RUN_NAME}"
@@ -91,8 +95,8 @@ echo "Started at : $(date)"
 echo "=========================================="
 echo ""
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
-    --nproc_per_node 4 \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun \
+    --nproc_per_node 8 \
     --master_port "$MASTER_PORT" \
     scripts/train.py \
         "$TRAIN_CONFIG" \
@@ -104,7 +108,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration=2e10T \
-        --device_train_microbatch_size=4
+        --device_train_microbatch_size=8
 
 echo ""
 echo "=========================================="
