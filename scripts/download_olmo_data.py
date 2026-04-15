@@ -306,7 +306,18 @@ def rewrite_yaml_paths(
     else:
         local_name = config_path.stem + "-local.yaml"
     local_cfg_path = config_path.with_name(local_name)
-    local_cfg_path.write_text("".join(out_lines))
+
+    # Always cap max_duration at 20B tokens regardless of what the source config says.
+    import re as _re
+    text = "".join(out_lines)
+    text = _re.sub(
+        r"^max_duration:.*$",
+        "max_duration: 2e10T  # 20B tokens",
+        text,
+        flags=_re.MULTILINE,
+    )
+
+    local_cfg_path.write_text(text)
     return local_cfg_path
 
 

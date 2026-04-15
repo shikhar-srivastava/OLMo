@@ -50,7 +50,21 @@ A new normalization variant `lns` was added to `olmo/config.py` (`LayerNormType.
 
 ## Training Scripts (run / dispatch)
 
-Five `run_olmo_{60m,150m,300m,1b,7b}.sh` scripts launch 4-GPU training via `torchrun --nproc_per_node 4`. Each takes a `norm_type` argument (`pre` = RMSNorm baseline, `lns` = LNS variant) and sets consistent overrides: `wandb.project=olmo-runs`, `wandb.entity=null` (uses your logged-in W&B account), `max_duration=2e10T` (20B token cap), and a local `checkpoints/<run_name>` save folder with no remote upload. Five corresponding `dispatch_olmo_{size}.sh` scripts call each run script twice — once for `pre` and once for `lns` — to launch both variants in sequence.
+`run_olmo_{60m,150m,300m,1b}.sh` launch 4-GPU training via `torchrun --nproc_per_node 4`. `run_olmo_7b.sh` launches **8-GPU** training on a single node (`torchrun --nproc_per_node 8`) for **8× A100 80GB**. Each script takes a `norm_type` argument (`pre` = RMSNorm baseline, `lns` = LNS variant) and sets consistent overrides: `wandb.project=olmo-runs`, `wandb.entity=null` (uses your logged-in W&B account), `max_duration=2e10T` (20B token cap), and a local `checkpoints/<run_name>` save folder with no remote upload. Five corresponding `dispatch_olmo_{size}.sh` scripts call each run script twice — once for `pre` and once for `lns` — to launch both variants in sequence.
+
+## Per-device microbatch and wall-clock ETA (20B tokens)
+
+`device_train_microbatch_size` is overridden in each `run_olmo_*.sh` (not the YAML defaults). Gradient accumulation fills out the configured `global_train_batch_size`; effective training dynamics are unchanged.
+
+| Model | `device_train_microbatch_size` | GPUs (this setup) | ETA (wall clock) |
+|-------|-------------------------------:|-------------------|------------------|
+| 60M   | 32 | 4× H100 | unknown (expected under 12 h) |
+| 150M  | 8  | 4× L40S | ~26 h |
+| 300M  | 8  | 4× H100 | ~18 h |
+| 1B    | 8  | 4× H100 | ~32 h |
+| 7B    | 4  | 8× A100 (single node) | ~6 days (~144 h) |
+
+ETAs are approximate observed or projected totals for a full 20B-token run with local cached data; actual time varies with I/O, checkpointing, and cluster load.
 
 ## Public Configs for Tiny Models
 

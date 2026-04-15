@@ -84,7 +84,7 @@ echo "Norm type  : ${norm_type}  (model.layer_norm_type=${olmo_norm_type})"
 echo "Run name   : ${RUN_NAME}"
 echo "Master port: ${MASTER_PORT}"
 echo "Config     : ${TRAIN_CONFIG}  [${CONFIG_MODE}]"
-echo "Token budget: 20B (capped via --max_duration=2e10T)"
+echo "Token budget: 20B (capped via --max_duration='2e10T')"
 echo "Started at : $(date)"
 echo "=========================================="
 echo ""
@@ -101,8 +101,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
         --wandb.name="${RUN_NAME}" \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
-        --max_duration=2e10T \
-        --device_train_microbatch_size=16
+        --max_duration='2e10T' \
+        --device_train_microbatch_size=8
 
 echo ""
 echo "=========================================="

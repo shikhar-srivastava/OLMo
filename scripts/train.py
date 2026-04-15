@@ -2,6 +2,7 @@
 
 import gzip
 import logging
+import math
 import os
 import sys
 from datetime import timedelta
@@ -372,6 +373,37 @@ def main(cfg: TrainConfig) -> None:
             log.info(f"Unsharded checkpoint saved to {checkpoint_path}")
 
         if not cfg.dry_run:
+            # ── Pre-flight: verify token budget before a single step runs ─────
+            if get_global_rank() == 0:
+                _max_tok = trainer.max_tokens
+                _tpb     = trainer.tokens_per_batch
+                # mirrors the stop_at = max_steps + 10 logic in fit()
+                _stop_at = math.ceil(_max_tok / _tpb) + 10
+                _tok_at_stop = _stop_at * _tpb
+                _pct_over = (_tok_at_stop - 20e9) / 20e9 * 100
+                _status = "OK" if abs(_pct_over) < 1.0 else "WARNING – DEVIATES FROM 20B"
+                log.info(
+                    "\n"
+                    "┌─ TOKEN BUDGET PRE-FLIGHT CHECK ─────────────────────────────┐\n"
+                    f"│  max_duration (raw)  : {str(cfg.max_duration):<38}│\n"
+                    f"│  max_tokens          : {_max_tok:<38,}│\n"
+                    f"│  tokens_per_batch    : {_tpb:<38,}│\n"
+                    f"│  expected stop_at    : step {_stop_at:<33}│\n"
+                    f"│  tokens at stop      : {_tok_at_stop:<38,}│\n"
+                    f"│  overshoot vs 20B    : {_pct_over:+.3f}%{'':<33}│\n"
+                    f"│  status              : {_status:<38}│\n"
+                    "└─────────────────────────────────────────────────────────────┘"
+                )
+                if wandb.run is not None:
+                    wandb.run.summary.update({
+                        "token_budget/max_duration_raw":  str(cfg.max_duration),
+                        "token_budget/max_tokens":        _max_tok,
+                        "token_budget/tokens_per_batch":  _tpb,
+                        "token_budget/stop_at_step":      _stop_at,
+                        "token_budget/tokens_at_stop":    _tok_at_stop,
+                        "token_budget/status":            _status,
+                    })
+            # ─────────────────────────────────────────────────────────────────
             log.info("Starting training...")
             trainer.fit()
             log.info("Training complete")
