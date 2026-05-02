@@ -33,6 +33,7 @@ __all__ = [
     "ActivationCheckpointingStrategy",
     "BlockType",
     "LayerNormType",
+    "LayerRoPEConfig",
     "InitFnType",
     "ModelConfig",
     "OptimizerType",
@@ -238,6 +239,66 @@ class InitFnType(StrEnum):
     full_megatron = "full_megatron"
     """
     This is what metaseq calls "full megatron init". It is the init used for Llama 2.
+    """
+
+
+@dataclass
+class LayerRoPEConfig(BaseConfig):
+    """
+    Configuration for the LayerRoPE feature: per-layer complex rotation of a
+    shared RMSNorm gamma, with per-pair RoPE-style frequency modulation.
+
+    Faithful port of the "complex-rotation global depth gates + shared gamma +
+    RoPE-global" path from the upstream ``large-activations`` codebase. See
+    :mod:`olmo.layer_rope` for the math and implementation. Two variants are
+    supported, selected by :attr:`norm_after`.
+
+    Note that :attr:`rope_base_freq` is INTENTIONALLY DISTINCT from
+    :attr:`ModelConfig.rope_theta` (the attention-RoPE base) and never feeds
+    into the standard attention rotary embedding.
+    """
+
+    enabled: bool = False
+    """
+    If ``True``, replace the block's pre-norms with the LayerRoPE
+    complex-rotated RMSNorm and (depending on :attr:`norm_after`) either add
+    an explicit residual gate or insert a post-block norm before each residual
+    add. Only ``block_type=sequential`` is supported.
+    """
+
+    norm_after: bool = False
+    """
+    If ``True``, in addition to rotated pre-norms, insert a post-block norm
+    (a separate :class:`olmo.layer_rope.ComplexRotRMSNorm` with its own shared
+    gamma) after each sublayer output and SKIP the explicit residual gate.
+    The rotation is then "baked into" the post-block norm.
+
+    This is structurally distinct from :attr:`ModelConfig.norm_after` (which
+    moves the pre-norm to a post-norm Swin-style); the two flags are not
+    interchangeable and cannot be combined.
+    """
+
+    alpha_init: float = 0.0
+    """Initial value for the magnitude offset alpha; seeds all 4 (input/residual x attn/mlp) slots."""
+
+    beta_init: float = 0.0
+    """Initial value for the magnitude slope beta (against ``log(layer_id+1)``); seeds all 4 slots."""
+
+    alpha_rot_init: float = 0.0
+    """Initial value for the rotation offset alpha_rot; seeds all 4 slots.
+
+    The per-layer rotation angle is ``theta(l) = exp(alpha_rot + beta_rot * log(l+1))``.
+    """
+
+    beta_rot_init: float = 0.0
+    """Initial value for the rotation slope beta_rot; seeds all 4 slots."""
+
+    rope_base_freq: float = 10000.0
+    """
+    Base frequency for the LayerRoPE per-pair rotation:
+    ``theta_j(l) = theta(l) * rope_base_freq^(-2j/d_model)``.
+
+    Distinct from :attr:`ModelConfig.rope_theta` (attention RoPE).
     """
 
 
@@ -482,6 +543,13 @@ class ModelConfig(BaseConfig):
     norm_after: bool = False
     """
     Apply norm after the attention/feedforward layers rather than before, as introduced in the Swin transformer paper (Liu et al).
+    """
+
+    layer_rope: LayerRoPEConfig = field(default_factory=LayerRoPEConfig)
+    """
+    LayerRoPE configuration. See :class:`LayerRoPEConfig`. Disabled by default;
+    when enabled, replaces the block's pre-norms with a complex-rotated
+    shared-gamma RMSNorm and (optionally) inserts post-block norms.
     """
 
     @property

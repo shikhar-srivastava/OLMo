@@ -47,6 +47,13 @@ from .config import (
 )
 from .exceptions import OLMoConfigurationError
 from .initialization import init_normal
+from .layer_rope import (
+    ComplexRotRMSNorm,
+    LayerRoPESharedParams,
+    complex_rotate_pairs,
+    compute_layer_rope_factors,
+    layer_log_depth_buffer,
+)
 from .torch_util import ensure_finite_, get_cumulative_document_lengths
 
 if sys.version_info.minor > 8:
@@ -670,10 +677,23 @@ class OLMoBlock(nn.Module):
         raise NotImplementedError
 
     @classmethod
-    def build(cls, layer_id: int, config: ModelConfig, cache: BufferCache) -> OLMoBlock:
+    def build(
+        cls,
+        layer_id: int,
+        config: ModelConfig,
+        cache: BufferCache,
+        layer_rope_shared: Optional[LayerRoPESharedParams] = None,
+    ) -> OLMoBlock:
         if config.block_type == BlockType.sequential:
-            return OLMoSequentialBlock(layer_id, config, cache)
+            return OLMoSequentialBlock(
+                layer_id, config, cache, layer_rope_shared=layer_rope_shared
+            )
         elif config.block_type == BlockType.llama:
+            if layer_rope_shared is not None:
+                raise OLMoConfigurationError(
+                    "LayerRoPE is only supported with block_type=sequential, "
+                    f"got block_type={config.block_type}"
+                )
             return OLMoLlamaBlock(layer_id, config, cache)
         else:
             raise NotImplementedError(f"Unknown block type: '{config.block_type}'")
@@ -686,7 +706,13 @@ class OLMoSequentialBlock(OLMoBlock):
     use the flag `norm_after`.
     """
 
-    def __init__(self, layer_id: int, config: ModelConfig, cache: BufferCache):
+    def __init__(
+        self,
+        layer_id: int,
+        config: ModelConfig,
+        cache: BufferCache,
+        layer_rope_shared: Optional[LayerRoPESharedParams] = None,
+    ):
         super().__init__(layer_id, config, cache)
         # Attention input projection. Projects x -> (q, k, v)
 
@@ -705,13 +731,43 @@ class OLMoSequentialBlock(OLMoBlock):
         )
 
         # Layer norms.
-        self.attn_norm = LayerNorm.build(config, size=config.d_model)
-        self.ff_norm = LayerNorm.build(config, size=config.d_model)
+        self.layer_rope_enabled = bool(config.layer_rope.enabled)
+        if self.layer_rope_enabled:
+            # Replace the standard pre-norms with the LayerRoPE complex-rotated
+            # RMSNorm. These own no affine parameters of their own; gamma comes
+            # from the model-level :class:`LayerRoPESharedParams`.
+            self.attn_norm = ComplexRotRMSNorm(eps=config.layer_norm_eps)
+            self.ff_norm = ComplexRotRMSNorm(eps=config.layer_norm_eps)
+            if config.layer_rope.norm_after:
+                self.attn_post_block_norm = ComplexRotRMSNorm(eps=config.layer_norm_eps)
+                self.ff_post_block_norm = ComplexRotRMSNorm(eps=config.layer_norm_eps)
+            # Non-owning reference: the shared params are registered on the
+            # top-level :class:`OLMo.transformer.layer_rope_params`. Use
+            # ``object.__setattr__`` so :class:`nn.Module` does not register
+            # it as a child (which would double-count parameters).
+            if layer_rope_shared is None:
+                raise OLMoConfigurationError(
+                    "OLMoSequentialBlock requires layer_rope_shared when "
+                    "config.layer_rope.enabled=True"
+                )
+            object.__setattr__(self, "_layer_rope_shared", layer_rope_shared)
+            # Precomputed log(layer_id+1), FP32, on the right device.
+            self.register_buffer(
+                "layer_log_depth",
+                layer_log_depth_buffer(layer_id),
+                persistent=False,
+            )
+        else:
+            self.attn_norm = LayerNorm.build(config, size=config.d_model)
+            self.ff_norm = LayerNorm.build(config, size=config.d_model)
 
     def reset_parameters(self):
         super().reset_parameters()
         self.attn_norm.reset_parameters()
         self.ff_norm.reset_parameters()
+        if self.layer_rope_enabled and self.config.layer_rope.norm_after:
+            self.attn_post_block_norm.reset_parameters()
+            self.ff_post_block_norm.reset_parameters()
         # NOTE: the standard deviation for these weights does not depend on the layer.
 
         if self.config.init_fn == InitFnType.normal:
@@ -729,6 +785,118 @@ class OLMoSequentialBlock(OLMoBlock):
         init_normal(self.att_proj, std, cutoff_factor)
         init_normal(self.ff_proj, std, cutoff_factor)
 
+    def _layer_rope_factors(
+        self, gate_kind: str, branch: str
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        shared: LayerRoPESharedParams = self._layer_rope_shared  # type: ignore[attr-defined]
+        alpha, beta, alpha_rot, beta_rot = shared.schedule_params(gate_kind, branch)
+        return compute_layer_rope_factors(
+            self.layer_log_depth,
+            alpha,
+            beta,
+            alpha_rot,
+            beta_rot,
+            base_freq=shared.base_freq,
+            H=self.config.d_model,
+        )
+
+    def _layer_rope_forward(
+        self,
+        x: torch.Tensor,
+        attention_bias: Optional[torch.Tensor] = None,
+        layer_past: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
+        use_cache: bool = False,
+        max_doc_len: Optional[int] = None,
+        cu_doc_lens: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor, torch.Tensor]]]:
+        """Forward path used when ``config.layer_rope.enabled`` is ``True``.
+
+        Mirrors :meth:`forward` for ``norm_after=False`` (pre-norm) but with the
+        attn / ff pre-norms replaced by :class:`ComplexRotRMSNorm` and either an
+        explicit residual gate (``layer_rope.norm_after=False``) or an additional
+        post-block :class:`ComplexRotRMSNorm` (``layer_rope.norm_after=True``)
+        applied to each sublayer output.
+        """
+        shared: LayerRoPESharedParams = self._layer_rope_shared  # type: ignore[attr-defined]
+        norm_after_lr = self.config.layer_rope.norm_after
+
+        # === Attention half ===
+        mag_in_attn, theta_in_attn = self._layer_rope_factors("input", "attn")
+        gamma_in_attn = shared.gamma_for_pre_norm("attn")
+        h = self.attn_norm(x, gamma_in_attn, mag_in_attn, theta_in_attn)
+
+        qkv = self.att_proj(h)
+        if self.config.clip_qkv is not None:
+            qkv.clamp_(min=-self.config.clip_qkv, max=self.config.clip_qkv)
+        q, k, v = qkv.split(self.fused_dims, dim=-1)
+
+        if self._activation_checkpoint_fn is not None:
+            att, cache = self._activation_checkpoint_fn(  # type: ignore
+                self.attention,
+                q,
+                k,
+                v,
+                attention_bias,
+                layer_past=layer_past,
+                use_cache=use_cache,
+                max_doc_len=max_doc_len,
+                cu_doc_lens=cu_doc_lens,
+            )
+        else:
+            att, cache = self.attention(
+                q,
+                k,
+                v,
+                attention_bias,
+                layer_past=layer_past,
+                use_cache=use_cache,
+                max_doc_len=max_doc_len,
+                cu_doc_lens=cu_doc_lens,
+            )
+
+        # Apply LayerRoPE residual-side rotation to the attention output.
+        mag_res_attn, theta_res_attn = self._layer_rope_factors("residual", "attn")
+        if norm_after_lr:
+            gamma_pb_attn = shared.gamma_for_post_block_norm("attn")
+            att = self.attn_post_block_norm(att, gamma_pb_attn, mag_res_attn, theta_res_attn)
+        else:
+            # No defensive FP32 casts — same precision regime as PRE / LNS:
+            # gamma_res / mag / theta dtypes follow storage (FP32 under DDP,
+            # bf16 under FSDP MixedPrecision), and the gate × att multiply
+            # follows PyTorch type promotion identically to ``self.weight * x``
+            # in :class:`olmo.model.RMSLayerNorm`.
+            gamma_res_attn = shared.gamma_for_residual_gate("attn")
+            gate_attn = complex_rotate_pairs(gamma_res_attn, mag_res_attn, theta_res_attn)
+            att = gate_attn * att
+
+        x = x + self.dropout(att)
+
+        # === MLP half ===
+        og_x = x
+        mag_in_mlp, theta_in_mlp = self._layer_rope_factors("input", "mlp")
+        gamma_in_mlp = shared.gamma_for_pre_norm("mlp")
+        x = self.ff_norm(x, gamma_in_mlp, mag_in_mlp, theta_in_mlp)
+
+        x = self.ff_proj(x)
+        if self._activation_checkpoint_fn is not None:
+            x = self._activation_checkpoint_fn(self.act, x)  # type: ignore
+        else:
+            x = self.act(x)
+        x = self.ff_out(x)
+
+        mag_res_mlp, theta_res_mlp = self._layer_rope_factors("residual", "mlp")
+        if norm_after_lr:
+            gamma_pb_mlp = shared.gamma_for_post_block_norm("mlp")
+            x = self.ff_post_block_norm(x, gamma_pb_mlp, mag_res_mlp, theta_res_mlp)
+        else:
+            gamma_res_mlp = shared.gamma_for_residual_gate("mlp")
+            gate_mlp = complex_rotate_pairs(gamma_res_mlp, mag_res_mlp, theta_res_mlp)
+            x = gate_mlp * x
+
+        x = self.dropout(x)
+        x = og_x + x
+        return x, cache
+
     def forward(
         self,
         x: torch.Tensor,
@@ -738,6 +906,15 @@ class OLMoSequentialBlock(OLMoBlock):
         max_doc_len: Optional[int] = None,
         cu_doc_lens: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor, torch.Tensor]]]:
+        if self.layer_rope_enabled:
+            return self._layer_rope_forward(
+                x,
+                attention_bias=attention_bias,
+                layer_past=layer_past,
+                use_cache=use_cache,
+                max_doc_len=max_doc_len,
+                cu_doc_lens=cu_doc_lens,
+            )
         # Get query, key, value projections.
         # shape:
         #  - for regular attn q, k, v: (batch_size, seq_len, d_model)
@@ -1129,7 +1306,46 @@ class OLMo(nn.Module):
             )
         )
 
-        blocks = [OLMoBlock.build(i, config, self.__cache) for i in range(config.n_layers)]
+        # Optional LayerRoPE shared parameters. Owned exactly once on the model;
+        # each block holds a non-owning reference for forward use.
+        layer_rope_shared: Optional[LayerRoPESharedParams] = None
+        if config.layer_rope.enabled:
+            if config.block_type != BlockType.sequential:
+                raise OLMoConfigurationError(
+                    "LayerRoPE only supports block_type=sequential, "
+                    f"got block_type={config.block_type}"
+                )
+            if config.norm_after:
+                raise OLMoConfigurationError(
+                    "config.norm_after (Swin-style post-norm) is incompatible with "
+                    "config.layer_rope.enabled. Use config.layer_rope.norm_after to "
+                    "request the LayerRoPE post-block-norm variant instead."
+                )
+            if config.layer_norm_type == LayerNormType.lns:
+                raise OLMoConfigurationError(
+                    "LayerRoPE is incompatible with layer_norm_type=lns; both apply "
+                    "depth-dependent transformations to the pre-norm output."
+                )
+            if config.d_model % 2 != 0:
+                raise OLMoConfigurationError(
+                    f"LayerRoPE requires d_model to be even, got d_model={config.d_model}"
+                )
+            layer_rope_shared = LayerRoPESharedParams(
+                d_model=config.d_model,
+                norm_after=config.layer_rope.norm_after,
+                alpha_init=config.layer_rope.alpha_init,
+                beta_init=config.layer_rope.beta_init,
+                alpha_rot_init=config.layer_rope.alpha_rot_init,
+                beta_rot_init=config.layer_rope.beta_rot_init,
+                base_freq=config.layer_rope.rope_base_freq,
+                init_device=config.init_device or "cpu",
+            )
+            self.transformer.update({"layer_rope_params": layer_rope_shared})
+
+        blocks = [
+            OLMoBlock.build(i, config, self.__cache, layer_rope_shared=layer_rope_shared)
+            for i in range(config.n_layers)
+        ]
         if self.config.block_group_size > 1:
             block_groups = [
                 OLMoBlockGroup(config, i, blocks[i : i + config.block_group_size])
@@ -1229,6 +1445,10 @@ class OLMo(nn.Module):
 
         # Top-level layer norm.
         self.transformer.ln_f.reset_parameters()  # type: ignore
+
+        # Reset LayerRoPE shared parameters (gammas back to ones; scalars to inits).
+        if hasattr(self.transformer, "layer_rope_params"):
+            self.transformer.layer_rope_params.reset_parameters()  # type: ignore
 
         # Output weights.
         if hasattr(self.transformer, "ff_out"):

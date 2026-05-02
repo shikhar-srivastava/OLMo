@@ -13,6 +13,7 @@ from torch.optim.optimizer import Optimizer as OptimizerBase
 
 from . import LayerNormBase
 from .config import OptimizerType, SchedulerConfig, SchedulerType, TrainConfig
+from .layer_rope import LayerRoPESharedParams
 from .torch_util import get_default_device, is_distributed
 
 __all__ = [
@@ -866,6 +867,13 @@ def get_param_groups(cfg: TrainConfig, model: nn.Module) -> List[Dict[str, Any]]
                     no_decay.add(fpn)
             elif pn.endswith("weight") and isinstance(m, nn.Embedding):
                 if cfg.optimizer.decay_embeddings:
+                    decay.add(fpn)
+                else:
+                    no_decay.add(fpn)
+            elif isinstance(m, LayerRoPESharedParams):
+                # Shared gamma vectors and depth-schedule scalars: treat like norm
+                # weights — decay is governed by ``decay_norm_and_bias``.
+                if cfg.optimizer.decay_norm_and_bias:
                     decay.add(fpn)
                 else:
                     no_decay.add(fpn)
