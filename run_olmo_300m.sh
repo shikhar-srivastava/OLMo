@@ -7,7 +7,7 @@
 #   2. configs/tiny/OLMo-300M-public.yaml  – streams from https://olmo-data.org/
 #
 # Generate the local config with:
-#   python scripts/download_olmo_data.py --data-dir /scratch/ssrivas9/datasets/olmo-data
+#   python scripts/download_olmo_data.py --data-dir /localdisk/ssrivas9/datasets/olmo-data
 #   (only needs to run once; shared by 60M / 150M / 300M)
 #
 #   block_type: sequential | layer_norm_type: rms | distributed: ddp

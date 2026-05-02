@@ -455,7 +455,60 @@ if __name__ == "__main__":
     except IndexError:
         raise OLMoCliError(f"Usage: {sys.argv[0]} [CONFIG_PATH] [OPTIONS]")
 
+    # ── Fail-safe: max_duration must be set explicitly on the CLI ────────────
+    # The token budget is the single most important knob for these runs. To
+    # eliminate any risk of a stale config silently overriding it, we require
+    # every invocation to pass --max_duration=... on the command line. The
+    # paired YAML files use a sentinel string (MAX_DURATION_SENTINEL) that
+    # cannot be parsed as steps/tokens/epochs, so even if this CLI check is
+    # bypassed the run will hard-fail before any optimizer step.
+    _MAX_DURATION_SENTINEL = "MUST_BE_SET_BY_RUN_SCRIPT"
+    _cli_max_duration = None
+    for _a in args_list:
+        _stripped = _a.lstrip("-")
+        # Mirror clean_opt's normalization: hyphens in the option name become underscores.
+        _name, _sep, _value = _stripped.partition("=")
+        if _name.replace("-", "_") == "max_duration" and _sep == "=":
+            _cli_max_duration = _value
+            break
+    if not _cli_max_duration:
+        raise OLMoCliError(
+            "max_duration was not provided on the CLI. The run script must pass "
+            "`--max_duration=<value>` explicitly so that the token budget cannot "
+            "be silently overridden by a config file. Refusing to start."
+        )
+
     cfg = TrainConfig.load(yaml_path, [clean_opt(s) for s in args_list])
+
+    # Defence-in-depth: if the YAML still carries the sentinel after CLI merge,
+    # the override didn't land — abort loudly instead of training on garbage.
+    if isinstance(cfg.max_duration, str) and cfg.max_duration.strip() == _MAX_DURATION_SENTINEL:
+        raise OLMoConfigurationError(
+            f"cfg.max_duration is still the sentinel '{_MAX_DURATION_SENTINEL}' after "
+            f"merging CLI overrides. The --max_duration={_cli_max_duration!r} flag did "
+            f"not take effect. Refusing to start."
+        )
+
+    # Fail-safe: max_duration must be the sole termination criterion.
+    # The training loop in olmo/train.py uses cfg.stop_at as the actual exit
+    # condition, falling back to max_steps+10 only when stop_at is None. So a
+    # stop_at / stop_after / time_limit / early_stopping_factor left in the
+    # config silently overrides the run script's --max_duration. Refuse to
+    # start unless every competing knob is null.
+    _competing = {
+        "stop_at": cfg.stop_at,
+        "stop_after": cfg.stop_after,
+        "time_limit": cfg.time_limit,
+        "early_stopping_factor": cfg.early_stopping_factor,
+    }
+    _set_knobs = {k: v for k, v in _competing.items() if v is not None}
+    if _set_knobs:
+        raise OLMoConfigurationError(
+            "Refusing to start: the following knobs would compete with --max_duration "
+            f"and silently override the token budget: {_set_knobs}. Set them to null in "
+            "the config (or pass --<name>=null on the CLI) and rely on --max_duration "
+            "alone to control termination."
+        )
     if torch.backends.mps.is_available():
         log.info("Device is MPS. Updating config...")
         cfg.model.init_device = "mps"

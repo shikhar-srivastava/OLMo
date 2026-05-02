@@ -11,7 +11,7 @@
 #
 # Generate the local config once with:
 #   python scripts/download_olmo_data.py \
-#       --data-dir /scratch/ssrivas9/datasets/olmo-data \
+#       --data-dir /localdisk/ssrivas9/datasets/olmo-data \
 #       --target-tokens 40_000_000_000
 #
 #   block_type: sequential | layer_norm_type: rms | distributed: ddp
@@ -111,7 +111,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
-        --device_train_microbatch_size=32
+        --device_train_microbatch_size=8
 
 echo ""
 echo "=========================================="

@@ -19,7 +19,7 @@ The tiny model configs (60M/150M/300M) contain ~1.82T tokens spread across
 Usage:
     python scripts/download_olmo_data.py \\
         --config configs/tiny/OLMo-60M-public.yaml \\
-        --data-dir /scratch/ssrivas9/datasets/olmo-data \\
+        --data-dir /localdisk/ssrivas9/datasets/olmo-data \\
         --target-tokens 40_000_000_000 \\
         --max-workers 16
 
@@ -307,12 +307,14 @@ def rewrite_yaml_paths(
         local_name = config_path.stem + "-local.yaml"
     local_cfg_path = config_path.with_name(local_name)
 
-    # Always cap max_duration at 20B tokens regardless of what the source config says.
+    # Replace max_duration with a sentinel: the run script must pass --max_duration on
+    # the CLI, and scripts/train.py refuses to start without it. This guarantees the
+    # token budget cannot be silently set by a generated config file.
     import re as _re
     text = "".join(out_lines)
     text = _re.sub(
         r"^max_duration:.*$",
-        "max_duration: 2e10T  # 20B tokens",
+        "max_duration: MUST_BE_SET_BY_RUN_SCRIPT  # sentinel: real value is required via --max_duration on the CLI",
         text,
         flags=_re.MULTILINE,
     )
@@ -337,7 +339,7 @@ def main():
     )
     parser.add_argument(
         "--data-dir",
-        default="/scratch/ssrivas9/datasets/olmo-data",
+        default="/localdisk/ssrivas9/datasets/olmo-data",
         help="Root directory to download shards into. Subdirectory structure "
              "mirrors the olmo-data.org URL path.",
     )

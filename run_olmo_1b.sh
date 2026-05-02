@@ -9,7 +9,7 @@
 # Generate the local config with:
 #   python scripts/download_olmo_data.py \
 #       --config configs/official-0724/OLMo-1B.yaml \
-#       --data-dir /scratch/ssrivas9/datasets/olmo-data \
+#       --data-dir /localdisk/ssrivas9/datasets/olmo-data \
 #       --target-tokens 40_000_000_000
 #
 # Usage:
