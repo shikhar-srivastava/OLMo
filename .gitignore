@@ -56,3 +56,4 @@ site/
 /scratch/
 core
 checkpoints/*
+.nfs*

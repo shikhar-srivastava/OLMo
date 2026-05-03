@@ -7,9 +7,22 @@
 #   rope_base_freq=10000
 #
 # Override defaults by passing positional args:
-#   ./dispatch_olmo_1b_layer_rope.sh [alpha_init] [beta_init] [alpha_rot_init] [beta_rot_init] [rope_base_freq]
+#   ./dispatch_olmo_1b_layer_rope.sh [--first4gpus | --last4gpus] \
+#       [alpha_init] [beta_init] [alpha_rot_init] [beta_rot_init] [rope_base_freq]
+#
+# GPU selection (optional, must be the first arg):
+#   --first4gpus   Use GPUs 0,1,2,3 (default if neither flag is given)
+#   --last4gpus    Use GPUs 4,5,6,7
 
 set -e
+
+if [[ "$1" == "--first4gpus" ]]; then
+    export CUDA_VISIBLE_DEVICES=0,1,2,3
+    shift
+elif [[ "$1" == "--last4gpus" ]]; then
+    export CUDA_VISIBLE_DEVICES=4,5,6,7
+    shift
+fi
 
 alpha_init=${1:-0.0}
 beta_init=${2:-0.0}

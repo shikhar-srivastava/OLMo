@@ -91,13 +91,14 @@ echo "=========================================="
 echo "Norm type  : ${norm_type}  (model.layer_norm_type=${olmo_norm_type})"
 echo "Run name   : ${RUN_NAME}"
 echo "Master port: ${MASTER_PORT}"
+echo "GPUs       : ${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
 echo "Config     : ${TRAIN_CONFIG}  [${CONFIG_MODE}]"
 echo "Token budget: 20B (capped via --max_duration='2e10T')"
 echo "Started at : $(date)"
 echo "=========================================="
 echo ""
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
+CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}" torchrun \
     --nproc_per_node 4 \
     --master_port "$MASTER_PORT" \
     scripts/train.py \

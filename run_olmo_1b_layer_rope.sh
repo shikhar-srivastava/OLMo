@@ -52,6 +52,7 @@ echo "=========================================="
 echo "Variant         : ${variant}  (layer_rope.norm_after=${layer_rope_norm_after})"
 echo "Run name        : ${RUN_NAME}"
 echo "Master port     : ${MASTER_PORT}"
+echo "GPUs            : ${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
 echo "Config          : ${TRAIN_CONFIG}  [${CONFIG_MODE}]"
 echo "alpha_init      : ${alpha_init}"
 echo "beta_init       : ${beta_init}"
@@ -63,7 +64,7 @@ echo "Started at      : $(date)"
 echo "=========================================="
 echo ""
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
+CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}" torchrun \
     --nproc_per_node 4 \
     --master_port "$MASTER_PORT" \
     scripts/train.py \

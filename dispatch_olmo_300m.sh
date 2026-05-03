@@ -7,8 +7,20 @@
 #   2. lns  – LayerNorm Scaling: RMSNorm + 1/sqrt(layer_id+1) depth scaling
 #
 # Usage:
-#   ./dispatch_olmo_300m.sh
+#   ./dispatch_olmo_300m.sh [--first4gpus | --last4gpus]
 #
+# GPU selection (optional):
+#   --first4gpus   Use GPUs 0,1,2,3 (default if neither flag is given)
+#   --last4gpus    Use GPUs 4,5,6,7
+#
+
+if [[ "$1" == "--first4gpus" ]]; then
+    export CUDA_VISIBLE_DEVICES=0,1,2,3
+    shift
+elif [[ "$1" == "--last4gpus" ]]; then
+    export CUDA_VISIBLE_DEVICES=4,5,6,7
+    shift
+fi
 
 # Pre-normalisation (standard RMSNorm baseline)
 ./run_olmo_300m.sh pre 29515
