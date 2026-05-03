@@ -42,7 +42,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-150M-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}"
+RUN_NAME="OLMo-150M-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}_nfp32_wd0"
 
 LOCAL_CONFIG="configs/tiny/OLMo-150M-local.yaml"
 PUBLIC_CONFIG="configs/tiny/OLMo-150M-public.yaml"
@@ -84,14 +84,16 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
-        --device_train_microbatch_size=8 \
+        --device_train_microbatch_size=4 \
         --model.layer_rope.enabled=true \
         --model.layer_rope.norm_after="${layer_rope_norm_after}" \
         --model.layer_rope.alpha_init="${alpha_init}" \
         --model.layer_rope.beta_init="${beta_init}" \
         --model.layer_rope.alpha_rot_init="${alpha_rot_init}" \
         --model.layer_rope.beta_rot_init="${beta_rot_init}" \
-        --model.layer_rope.rope_base_freq="${rope_base_freq}"
+        --model.layer_rope.rope_base_freq="${rope_base_freq}" \
+        --model.rmsnorm_in_fp32=true \
+        --optimizer.decay_norm_and_bias=false
 
 echo ""
 echo "=========================================="

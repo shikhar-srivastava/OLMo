@@ -221,6 +221,19 @@ class LayerNorm(LayerNormBase):
         self.low_precision = low_precision
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # When `config.rmsnorm_in_fp32` is set, force the whole norm to run in
+        # FP32 regardless of distributed strategy: cast x / weight / bias to FP32,
+        # run F.layer_norm at FP32, cast result back to the input dtype.
+        if getattr(self.config, "rmsnorm_in_fp32", False):
+            og_dtype = x.dtype
+            with torch.autocast(enabled=False, device_type=x.device.type):
+                x_f = x.to(torch.float32)
+                weight_f = self.weight.to(torch.float32) if self.weight is not None else None
+                bias_f = self.bias.to(torch.float32) if self.bias is not None else None
+                out = F.layer_norm(
+                    x_f, self.normalized_shape, weight=weight_f, bias=bias_f, eps=self.eps
+                )
+            return out.to(og_dtype)
         if self.low_precision:
             module_device = x.device
             downcast_x = self._cast_if_autocast_enabled(x)
@@ -250,11 +263,27 @@ class RMSLayerNorm(LayerNormBase):
         super().__init__(config, size=size, elementwise_affine=elementwise_affine)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # When `config.rmsnorm_in_fp32` is set, run EVERYTHING in FP32 inside
+        # the autocast-disabled scope (variance, rsqrt, weight cast, gamma
+        # multiply, bias add) and cast the result back to the input dtype.
+        # This defeats any FSDP MixedPrecision bf16 cast on `self.weight` and
+        # is the byte-equivalent of the upstream `--rmsnorm_fp32` flag.
+        force_fp32 = getattr(self.config, "rmsnorm_in_fp32", False)
         with torch.autocast(enabled=False, device_type=x.device.type):
             og_dtype = x.dtype
             x = x.to(torch.float32)
             variance = x.pow(2).mean(-1, keepdim=True)
             x = x * torch.rsqrt(variance + self.eps)
+            if force_fp32:
+                if self.weight is not None:
+                    weight_f = self.weight.to(torch.float32)
+                    if self.bias is not None:
+                        out = weight_f * x + self.bias.to(torch.float32)
+                    else:
+                        out = weight_f * x
+                else:
+                    out = x
+                return out.to(og_dtype)
             x = x.to(og_dtype)
 
         if self.weight is not None:
@@ -790,14 +819,27 @@ class OLMoSequentialBlock(OLMoBlock):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         shared: LayerRoPESharedParams = self._layer_rope_shared  # type: ignore[attr-defined]
         alpha, beta, alpha_rot, beta_rot = shared.schedule_params(gate_kind, branch)
+        force_fp32 = getattr(self.config, "rmsnorm_in_fp32", False)
+        if force_fp32:
+            # Recompute log(layer_id+1) fresh in FP32 on the alpha device.
+            # Sidesteps any FSDP MixedPrecision ``buffer_dtype`` cast on
+            # ``self.layer_log_depth`` so the schedule math is bit-exact FP32.
+            log_l = torch.tensor(
+                math.log(float(self.layer_id) + 1.0),
+                dtype=torch.float32,
+                device=alpha.device,
+            )
+        else:
+            log_l = self.layer_log_depth
         return compute_layer_rope_factors(
-            self.layer_log_depth,
+            log_l,
             alpha,
             beta,
             alpha_rot,
             beta_rot,
             base_freq=shared.base_freq,
             H=self.config.d_model,
+            force_fp32=force_fp32,
         )
 
     def _layer_rope_forward(
@@ -819,11 +861,12 @@ class OLMoSequentialBlock(OLMoBlock):
         """
         shared: LayerRoPESharedParams = self._layer_rope_shared  # type: ignore[attr-defined]
         norm_after_lr = self.config.layer_rope.norm_after
+        force_fp32 = getattr(self.config, "rmsnorm_in_fp32", False)
 
         # === Attention half ===
         mag_in_attn, theta_in_attn = self._layer_rope_factors("input", "attn")
         gamma_in_attn = shared.gamma_for_pre_norm("attn")
-        h = self.attn_norm(x, gamma_in_attn, mag_in_attn, theta_in_attn)
+        h = self.attn_norm(x, gamma_in_attn, mag_in_attn, theta_in_attn, force_fp32=force_fp32)
 
         qkv = self.att_proj(h)
         if self.config.clip_qkv is not None:
@@ -858,16 +901,29 @@ class OLMoSequentialBlock(OLMoBlock):
         mag_res_attn, theta_res_attn = self._layer_rope_factors("residual", "attn")
         if norm_after_lr:
             gamma_pb_attn = shared.gamma_for_post_block_norm("attn")
-            att = self.attn_post_block_norm(att, gamma_pb_attn, mag_res_attn, theta_res_attn)
+            att = self.attn_post_block_norm(
+                att, gamma_pb_attn, mag_res_attn, theta_res_attn, force_fp32=force_fp32
+            )
         else:
-            # No defensive FP32 casts — same precision regime as PRE / LNS:
-            # gamma_res / mag / theta dtypes follow storage (FP32 under DDP,
-            # bf16 under FSDP MixedPrecision), and the gate × att multiply
-            # follows PyTorch type promotion identically to ``self.weight * x``
-            # in :class:`olmo.model.RMSLayerNorm`.
+            # When force_fp32 (config.rmsnorm_in_fp32=True): cast gate to FP32,
+            # multiply in FP32, cast result back to og_dtype to keep the
+            # residual stream in og_dtype. Otherwise let dtype follow storage,
+            # matching :class:`RMSLayerNorm`'s ``self.weight * x``.
             gamma_res_attn = shared.gamma_for_residual_gate("attn")
-            gate_attn = complex_rotate_pairs(gamma_res_attn, mag_res_attn, theta_res_attn)
-            att = gate_attn * att
+            if force_fp32:
+                og_dtype_att = att.dtype
+                with torch.autocast(enabled=False, device_type=att.device.type):
+                    gate_attn = complex_rotate_pairs(
+                        gamma_res_attn.to(torch.float32),
+                        mag_res_attn.to(torch.float32),
+                        theta_res_attn.to(torch.float32),
+                        force_fp32=False,  # already FP32 within this scope
+                    )
+                    att_fp32 = gate_attn * att.to(torch.float32)
+                att = att_fp32.to(og_dtype_att)
+            else:
+                gate_attn = complex_rotate_pairs(gamma_res_attn, mag_res_attn, theta_res_attn)
+                att = gate_attn * att
 
         x = x + self.dropout(att)
 
@@ -875,7 +931,7 @@ class OLMoSequentialBlock(OLMoBlock):
         og_x = x
         mag_in_mlp, theta_in_mlp = self._layer_rope_factors("input", "mlp")
         gamma_in_mlp = shared.gamma_for_pre_norm("mlp")
-        x = self.ff_norm(x, gamma_in_mlp, mag_in_mlp, theta_in_mlp)
+        x = self.ff_norm(x, gamma_in_mlp, mag_in_mlp, theta_in_mlp, force_fp32=force_fp32)
 
         x = self.ff_proj(x)
         if self._activation_checkpoint_fn is not None:
@@ -887,11 +943,25 @@ class OLMoSequentialBlock(OLMoBlock):
         mag_res_mlp, theta_res_mlp = self._layer_rope_factors("residual", "mlp")
         if norm_after_lr:
             gamma_pb_mlp = shared.gamma_for_post_block_norm("mlp")
-            x = self.ff_post_block_norm(x, gamma_pb_mlp, mag_res_mlp, theta_res_mlp)
+            x = self.ff_post_block_norm(
+                x, gamma_pb_mlp, mag_res_mlp, theta_res_mlp, force_fp32=force_fp32
+            )
         else:
             gamma_res_mlp = shared.gamma_for_residual_gate("mlp")
-            gate_mlp = complex_rotate_pairs(gamma_res_mlp, mag_res_mlp, theta_res_mlp)
-            x = gate_mlp * x
+            if force_fp32:
+                og_dtype_x = x.dtype
+                with torch.autocast(enabled=False, device_type=x.device.type):
+                    gate_mlp = complex_rotate_pairs(
+                        gamma_res_mlp.to(torch.float32),
+                        mag_res_mlp.to(torch.float32),
+                        theta_res_mlp.to(torch.float32),
+                        force_fp32=False,
+                    )
+                    x_fp32 = gate_mlp * x.to(torch.float32)
+                x = x_fp32.to(og_dtype_x)
+            else:
+                gate_mlp = complex_rotate_pairs(gamma_res_mlp, mag_res_mlp, theta_res_mlp)
+                x = gate_mlp * x
 
         x = self.dropout(x)
         x = og_x + x

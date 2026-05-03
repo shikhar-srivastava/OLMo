@@ -34,7 +34,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-7B-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}"
+RUN_NAME="OLMo-7B-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}_nfp32_wd0"
 
 LOCAL_CONFIG="configs/official-0724/OLMo-7B-local.yaml"
 PUBLIC_CONFIG="configs/official-0724/OLMo-7B.yaml"
@@ -83,7 +83,9 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun \
         --model.layer_rope.beta_init="${beta_init}" \
         --model.layer_rope.alpha_rot_init="${alpha_rot_init}" \
         --model.layer_rope.beta_rot_init="${beta_rot_init}" \
-        --model.layer_rope.rope_base_freq="${rope_base_freq}"
+        --model.layer_rope.rope_base_freq="${rope_base_freq}" \
+        --model.rmsnorm_in_fp32=true \
+        --optimizer.decay_norm_and_bias=false
 
 echo ""
 echo "=========================================="

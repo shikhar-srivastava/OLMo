@@ -18,7 +18,8 @@ beta_rot_init=${4:-0.0}
 rope_base_freq=${5:-10000.0}
 
 ./run_olmo_150m_layer_rope.sh pre        29515 "$alpha_init" "$beta_init" "$alpha_rot_init" "$beta_rot_init" "$rope_base_freq"
-./run_olmo_150m_layer_rope.sh norm_after 29515 "$alpha_init" "$beta_init" "$alpha_rot_init" "$beta_rot_init" "$rope_base_freq"
+
+#./run_olmo_150m_layer_rope.sh norm_after 29515 "$alpha_init" "$beta_init" "$alpha_rot_init" "$beta_rot_init" "$rope_base_freq"
 
 echo ""
 echo "All 150M LayerRoPE training jobs completed!"

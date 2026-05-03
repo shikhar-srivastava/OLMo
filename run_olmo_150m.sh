@@ -7,7 +7,7 @@
 #   2. configs/tiny/OLMo-150M-public.yaml  – streams from https://olmo-data.org/
 #
 # Generate the local config with:
-#   python scripts/download_olmo_data.py --data-dir /localdisk/ssrivas9/datasets/olmo-data
+#   python scripts/download_olmo_data.py --data-dir /scratch/ssrivas9/datasets/olmo-data
 #   (only needs to run once; shared by 60M / 150M / 300M)
 #
 #   block_type: sequential | layer_norm_type: rms | distributed: ddp
@@ -65,7 +65,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-150M-${norm_type}"
+RUN_NAME="OLMo-150M-${norm_type}_nfp32_wd0"
 
 LOCAL_CONFIG="configs/tiny/OLMo-150M-local.yaml"
 PUBLIC_CONFIG="configs/tiny/OLMo-150M-public.yaml"
@@ -103,7 +103,9 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
-        --device_train_microbatch_size=8
+        --device_train_microbatch_size=8 \
+        --optimizer.decay_norm_and_bias=false \
+        --model.rmsnorm_in_fp32=true
 
 echo ""
 echo "=========================================="

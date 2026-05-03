@@ -11,7 +11,7 @@
 #
 # Generate the local config once with:
 #   python scripts/download_olmo_data.py \
-#       --data-dir /localdisk/ssrivas9/datasets/olmo-data \
+#       --data-dir /scratch/ssrivas9/datasets/olmo-data \
 #       --target-tokens 40_000_000_000
 #
 #   block_type: sequential | layer_norm_type: rms | distributed: ddp
@@ -72,7 +72,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-60M-${norm_type}"
+RUN_NAME="OLMo-60M-${norm_type}_nfp32_wd0"
 
 # Auto-select local config (no streaming) when available, else fall back to public.
 LOCAL_CONFIG="configs/tiny/OLMo-60M-local.yaml"
@@ -111,7 +111,9 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
-        --device_train_microbatch_size=8
+        --device_train_microbatch_size=8 \
+        --optimizer.decay_norm_and_bias=false \
+        --model.rmsnorm_in_fp32=true
 
 echo ""
 echo "=========================================="

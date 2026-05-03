@@ -545,6 +545,34 @@ class ModelConfig(BaseConfig):
     Apply norm after the attention/feedforward layers rather than before, as introduced in the Swin transformer paper (Liu et al).
     """
 
+    rmsnorm_in_fp32: bool = False
+    """
+    If ``True``, force the entire norm pipeline to run in FP32 regardless of the
+    distributed strategy. This includes:
+
+      * Normalisation math (variance, ``rsqrt``, normalize) — already FP32 in
+        OLMo's stock norms; preserved.
+      * Norm weight (``self.weight`` for :class:`RMSLayerNorm` / :class:`LayerNorm`;
+        the four shared gammas for :class:`ComplexRotRMSNorm`) — explicitly
+        cast to FP32 at use time, defeating any FSDP MixedPrecision bf16 cast.
+      * LayerRoPE schedule scalars (``alpha`` / ``beta`` / ``alpha_rot`` /
+        ``beta_rot``) and ``layer_log_depth`` buffer — explicitly cast to FP32
+        at use time.
+      * The gamma multiply / complex rotation / residual gate math — performed
+        in FP32 inside an autocast-disabled scope.
+      * The norm output is cast back to the input dtype before returning, so
+        downstream Linear / residual-add ops see the unchanged regime.
+
+    Master parameter copies remain FP32 (declared as such); this flag controls
+    *use-time* dtype only. When ``False`` (default), each norm follows the
+    surrounding distributed strategy: FP32 under DDP, ``param_dtype`` (typically
+    bf16) under FSDP MixedPrecision.
+
+    Mirrors the upstream ``--rmsnorm_fp32`` flag in the ``large-activations``
+    codebase. Setting this to ``True`` for PRE / LNS / LayerRoPE simultaneously
+    keeps the comparison apples-to-apples at every distributed strategy.
+    """
+
     layer_rope: LayerRoPEConfig = field(default_factory=LayerRoPEConfig)
     """
     LayerRoPE configuration. See :class:`LayerRoPEConfig`. Disabled by default;

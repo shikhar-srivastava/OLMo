@@ -98,27 +98,27 @@ evaluators:
       drop_last: true
       datasets:
         v3-small-c4_en-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/c4_en/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/c4_en/val/part-0-00000.npy
         v3-small-dolma_books-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_books/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_books/val/part-0-00000.npy
         v3-small-dolma_common-crawl-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_common-crawl/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_common-crawl/val/part-0-00000.npy
         v3-small-dolma_pes2o-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_pes2o/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_pes2o/val/part-0-00000.npy
         v3-small-dolma_reddit-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_reddit/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_reddit/val/part-0-00000.npy
         v3-small-dolma_stack-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_stack/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_stack/val/part-0-00000.npy
         v3-small-dolma_wiki-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_wiki/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_wiki/val/part-0-00000.npy
         v3-small-ice-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/ice/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/ice/val/part-0-00000.npy
         v3-small-m2d2_s2orc-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/m2d2_s2orc/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/m2d2_s2orc/val/part-0-00000.npy
         v3-small-pile-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/pile/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/pile/val/part-0-00000.npy
         v3-small-wikitext_103-validation:
-          - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/wikitext_103/val/part-0-00000.npy
+          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/wikitext_103/val/part-0-00000.npy
 
   - label: v2-small-ppl-validation
     data:
@@ -126,31 +126,31 @@ evaluators:
       drop_last: true
       datasets:
         v2-small-4chan-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/4chan/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/4chan/val.npy
         v2-small-c4_100_domains-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/c4_100_domains/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/c4_100_domains/val.npy
         v2-small-c4_en-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/c4_en/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/c4_en/val.npy
         v2-small-gab-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/gab/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/gab/val.npy
         v2-small-ice-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/ice/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/ice/val.npy
         v2-small-m2d2_s2orc-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/m2d2_s2orc/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/m2d2_s2orc/val.npy
         v2-small-m2d2_wiki-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/m2d2_wiki/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/m2d2_wiki/val.npy
         v2-small-manosphere-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/manosphere/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/manosphere/val.npy
         v2-small-mc4_en-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/mc4_en/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/mc4_en/val.npy
         v2-small-pile-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/pile/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/pile/val.npy
         v2-small-ptb-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/ptb/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/ptb/val.npy
         v2-small-twitterAEE-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/twitterAEE/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/twitterAEE/val.npy
         v2-small-wikitext_103-validation:
-        - /localdisk/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/wikitext_103/val.npy
+        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v2_small_gptneox20b/wikitext_103/val.npy
 
   ##########################
   # Downstream evaluations #
@@ -203,13 +203,13 @@ data:
   persistent_workers: true
   timeout: 0
   paths:
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-000-00000.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-000-00001.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-001-00000.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-001-00001.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-002-00000.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-002-00001.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-003-00000.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-003-00001.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-004-00000.npy
-  - /localdisk/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-004-00001.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-000-00000.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-000-00001.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-001-00000.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-001-00001.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-002-00000.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-002-00001.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-003-00000.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-003-00001.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-004-00000.npy
+  - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_5-sample/gpt-neox-20b-pii-special/part-004-00001.npy

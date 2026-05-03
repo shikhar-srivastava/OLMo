@@ -184,6 +184,98 @@ def test_complex_rot_rms_norm_matches_rmslayernorm_at_zero_init_under_bf16_autoc
     assert torch.allclose(out_rms, out_crn, atol=1e-5)
 
 
+def test_rmsnorm_in_fp32_forces_fp32_on_complex_rot_rms_norm():
+    """``force_fp32=True`` overrides storage dtype: bf16 inputs / bf16 gamma still
+    yield FP32 internal compute and bf16 output (cast back at return)."""
+    H = 8
+    norm = ComplexRotRMSNorm(eps=1e-6)
+    x_bf16 = torch.randn(2, 3, H, dtype=torch.bfloat16)
+    gamma_bf16 = torch.ones(H, dtype=torch.bfloat16)
+    mag_bf16 = torch.tensor(0.0, dtype=torch.bfloat16)
+    theta_bf16 = torch.zeros(H // 2, dtype=torch.bfloat16)
+
+    out_no_force = norm(x_bf16, gamma_bf16, mag_bf16, theta_bf16, force_fp32=False)
+    out_force = norm(x_bf16, gamma_bf16, mag_bf16, theta_bf16, force_fp32=True)
+
+    # No-force path: dtype follows storage (bf16).
+    assert out_no_force.dtype == torch.bfloat16
+    # Force path: cast back to og_dtype (bf16).
+    assert out_force.dtype == torch.bfloat16
+    # The two should agree since gamma is ones and rotation is identity.
+    assert torch.allclose(out_no_force.float(), out_force.float(), atol=2e-2)
+
+
+def test_rmsnorm_in_fp32_complex_rotate_pairs_path_independence_at_zero_rot():
+    """At zero rotation, ``force_fp32=True`` and ``False`` produce the same
+    numeric result up to dtype-precision (the rotation is the identity)."""
+    H = 8
+    x = torch.randn(2, 3, H, dtype=torch.bfloat16)
+    mag = torch.tensor(0.0, dtype=torch.bfloat16)
+    theta = torch.zeros(H // 2, dtype=torch.bfloat16)
+
+    o_no = complex_rotate_pairs(x, mag, theta, force_fp32=False)
+    o_yes = complex_rotate_pairs(x, mag, theta, force_fp32=True)
+    assert o_no.dtype == torch.bfloat16
+    assert o_yes.dtype == torch.bfloat16
+    assert torch.allclose(o_no, o_yes, atol=1e-6)
+
+
+def test_rmsnorm_in_fp32_compute_layer_rope_factors_returns_fp32_under_bf16_inputs():
+    """``force_fp32=True`` must promote bf16 schedule scalars + log_l to FP32."""
+    H = 8
+    log_l = torch.tensor(math.log(3.0), dtype=torch.bfloat16)
+    a = torch.tensor(0.0, dtype=torch.bfloat16)
+    b = torch.tensor(-0.5, dtype=torch.bfloat16)
+    ar = torch.tensor(0.0, dtype=torch.bfloat16)
+    br = torch.tensor(-0.5, dtype=torch.bfloat16)
+
+    mag_no, theta_no = compute_layer_rope_factors(
+        log_l, a, b, ar, br, base_freq=10000.0, H=H, force_fp32=False
+    )
+    mag_yes, theta_yes = compute_layer_rope_factors(
+        log_l, a, b, ar, br, base_freq=10000.0, H=H, force_fp32=True
+    )
+    assert mag_no.dtype == torch.bfloat16
+    assert theta_no.dtype == torch.bfloat16
+    assert mag_yes.dtype == torch.float32
+    assert theta_yes.dtype == torch.float32
+
+
+def test_rmslayernorm_with_rmsnorm_in_fp32_forces_full_fp32_path():
+    """When ``config.rmsnorm_in_fp32=True``, RMSLayerNorm casts weight/bias to
+    FP32 inside the autocast-disabled scope and casts the output back to og_dtype."""
+    from olmo.config import LayerNormType, ModelConfig
+    from olmo.model import RMSLayerNorm
+
+    H = 16
+    cfg = ModelConfig(
+        d_model=H, n_heads=2, n_layers=1, mlp_ratio=2,
+        layer_norm_type=LayerNormType.rms,
+        layer_norm_with_affine=True,
+        layer_norm_eps=1e-6,
+        bias_for_layer_norm=False,
+        include_bias=False,
+        rmsnorm_in_fp32=True,
+    )
+    rms = RMSLayerNorm(cfg, size=H)
+    rms.weight.data.normal_()
+    # Simulate FSDP-pure: cast weight to bf16 in storage.
+    rms.weight.data = rms.weight.data.to(torch.bfloat16)
+
+    x_bf16 = torch.randn(2, 3, H, dtype=torch.bfloat16)
+    out = rms(x_bf16)
+    # Force-fp32 path: output is og_dtype (bf16), but math was FP32.
+    assert out.dtype == torch.bfloat16
+
+    # Reference: compute the same thing manually in FP32.
+    with torch.autocast(enabled=False, device_type=x_bf16.device.type):
+        x_f = x_bf16.float()
+        var = x_f.pow(2).mean(-1, keepdim=True)
+        normed = x_f * torch.rsqrt(var + 1e-6)
+        ref = (rms.weight.float() * normed).to(x_bf16.dtype)
+    assert torch.allclose(out, ref, atol=1e-5)
+
+
 def test_complex_rot_rms_norm_dtype_follows_gamma_storage_dtype():
     """Output dtype must follow the gamma storage dtype (no defensive casts).
 

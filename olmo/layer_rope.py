@@ -77,24 +77,43 @@ def complex_rotate_pairs(
     x: torch.Tensor,
     mag: torch.Tensor,
     theta: torch.Tensor,
+    force_fp32: bool = False,
 ) -> torch.Tensor:
     """Apply ``exp(mag + i * theta)`` to consecutive pairs of ``x``.
 
     The last dimension of ``x`` must be even; pairs ``(x[..., 2j], x[..., 2j+1])``
     are treated as ``(Re, Im)`` parts of complex numbers.
 
-    No defensive dtype casts: the math runs in whatever dtype the inputs are.
-    Output dtype follows PyTorch's standard type-promotion rules — same regime
-    as :class:`olmo.model.RMSLayerNorm`'s ``self.weight * x``.
-
     Args:
         x: Real tensor of shape ``(..., H)``.
         mag: scalar (or scalar-shaped) tensor — log-magnitude.
         theta: scalar tensor or ``(H/2,)`` tensor — rotation angle(s).
+        force_fp32: when ``True``, cast ``x`` / ``mag`` / ``theta`` to FP32
+            inside an autocast-disabled scope, run the full complex rotation in
+            FP32, and cast the result back to the input dtype. Defeats any
+            FSDP MixedPrecision bf16 cast. When ``False`` (default), the math
+            runs in whatever dtype the inputs carry — same regime as OLMo's
+            stock ``self.weight * x``.
     """
     H = x.shape[-1]
     if H % 2 != 0:
         raise ValueError(f"complex_rotate_pairs requires last dim to be even, got {H}")
+
+    if force_fp32:
+        og_dtype = x.dtype
+        with torch.autocast(enabled=False, device_type=x.device.type):
+            x_f = x.to(torch.float32)
+            mag_f = mag.to(torch.float32)
+            theta_f = theta.to(torch.float32)
+            u = x_f[..., 0::2]
+            v = x_f[..., 1::2]
+            scale = torch.exp(mag_f)
+            cos_t = torch.cos(theta_f)
+            sin_t = torch.sin(theta_f)
+            u_out = scale * (u * cos_t - v * sin_t)
+            v_out = scale * (u * sin_t + v * cos_t)
+            out = torch.stack([u_out, v_out], dim=-1).flatten(-2)
+        return out.to(og_dtype)
 
     u = x[..., 0::2]  # (..., H/2)
     v = x[..., 1::2]  # (..., H/2)
@@ -136,12 +155,30 @@ def compute_layer_rope_factors(
     beta_rot: torch.Tensor,
     base_freq: float,
     H: int,
+    force_fp32: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Compute ``(mag, theta_vec)`` for one (layer, branch, gate-kind) slot.
 
-    No defensive dtype casts. Math runs in the storage dtype of the inputs —
-    FP32 under DDP, ``param_dtype`` (typically bf16) under FSDP MixedPrecision.
+    Args:
+        force_fp32: when ``True``, cast every input to FP32 inside an
+            autocast-disabled scope so the per-layer scalars (alpha, beta,
+            alpha_rot, beta_rot) and the layer-log-depth buffer are FP32 at
+            use time, even under FSDP MixedPrecision. The returned ``mag`` and
+            ``theta_vec`` are FP32. When ``False`` (default), the math runs
+            in the storage dtype of the inputs.
     """
+    if force_fp32:
+        with torch.autocast(enabled=False, device_type=layer_log_depth.device.type):
+            log_l = layer_log_depth.to(torch.float32)
+            alpha_f = alpha.to(torch.float32)
+            beta_f = beta.to(torch.float32)
+            alpha_rot_f = alpha_rot.to(torch.float32)
+            beta_rot_f = beta_rot.to(torch.float32)
+            mag = alpha_f + beta_f * log_l
+            theta_scalar = torch.exp(alpha_rot_f + beta_rot_f * log_l)
+            theta_vec = _compute_theta_vec(theta_scalar, base_freq, H)
+        return mag, theta_vec
+
     log_l = layer_log_depth
     mag = alpha + beta * log_l
     theta_scalar = torch.exp(alpha_rot + beta_rot * log_l)
@@ -333,7 +370,36 @@ class ComplexRotRMSNorm(nn.Module):
         gamma_shared: torch.Tensor,
         mag: torch.Tensor,
         theta_vec: torch.Tensor,
+        force_fp32: bool = False,
     ) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            force_fp32: when ``True``, run the entire norm + complex-rotation
+                + gamma multiply in FP32 inside an autocast-disabled scope,
+                explicitly casting ``gamma_shared`` / ``mag`` / ``theta_vec``
+                to FP32. This defeats any FSDP MixedPrecision bf16 cast on
+                the shared gamma and matches the upstream
+                ``--rmsnorm_fp32`` flag. Output is cast back to the input
+                dtype before returning. When ``False`` (default), only the
+                variance / rsqrt math is in FP32 (matching :class:`RMSLayerNorm`)
+                and the gamma multiply follows storage dtype.
+        """
+        if force_fp32:
+            og_dtype = x.dtype
+            with torch.autocast(enabled=False, device_type=x.device.type):
+                x_f = x.to(torch.float32)
+                variance = x_f.pow(2).mean(-1, keepdim=True)
+                normed = x_f * torch.rsqrt(variance + self.eps)
+                gamma_eff = complex_rotate_pairs(
+                    gamma_shared.to(torch.float32),
+                    mag.to(torch.float32),
+                    theta_vec.to(torch.float32),
+                    force_fp32=False,  # already in FP32 within this scope
+                )
+                out = gamma_eff * normed
+            return out.to(og_dtype)
+
         with torch.autocast(enabled=False, device_type=x.device.type):
             og_dtype = x.dtype
             x = x.to(torch.float32)
