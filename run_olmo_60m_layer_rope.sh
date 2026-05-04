@@ -2,7 +2,7 @@
 #
 # Run OLMo 60M training on 4 GPUs with the LayerRoPE feature enabled.
 # Faithful port of the upstream "complex-rotation global depth gates + shared
-# gamma + RoPE-global" path from /scratch/ssrivas9/large-activations.
+# gamma + RoPE-global" path from /dev/shm/ssrivastava/large-activations.
 #
 # Two variants are supported:
 #   pre         – pre-norms become ComplexRotRMSNorm (input rot params),
@@ -82,7 +82,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-60M-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}_nfp32_wd0"
+RUN_NAME="OLMo-60M-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}"
 
 LOCAL_CONFIG="configs/tiny/OLMo-60M-local.yaml"
 PUBLIC_CONFIG="configs/tiny/OLMo-60M-public.yaml"
@@ -132,9 +132,7 @@ CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}" torchrun \
         --model.layer_rope.beta_init="${beta_init}" \
         --model.layer_rope.alpha_rot_init="${alpha_rot_init}" \
         --model.layer_rope.beta_rot_init="${beta_rot_init}" \
-        --model.layer_rope.rope_base_freq="${rope_base_freq}" \
-        --model.rmsnorm_in_fp32=true \
-        --optimizer.decay_norm_and_bias=false
+        --model.layer_rope.rope_base_freq="${rope_base_freq}"
 
 echo ""
 echo "=========================================="

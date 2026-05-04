@@ -204,8 +204,10 @@ class LayerRoPESharedParams(nn.Module):
           - else:
               ``gamma_residual_attn``,
               ``gamma_residual_mlp``
-      * 16 scalar params for (alpha, beta, alpha_rot, beta_rot) x
-        (input, residual) x (attn, mlp).
+      * 16 length-1 vector params for (alpha, beta, alpha_rot, beta_rot) x
+        (input, residual) x (attn, mlp). Stored as ``shape=(1,)`` rather than
+        scalars because FSDP rejects 0-D parameters; broadcasting in
+        :func:`compute_layer_rope_factors` handles the (1,) shape transparently.
     """
 
     # Marker the optimizer's param-group classifier looks for so the params
@@ -245,23 +247,26 @@ class LayerRoPESharedParams(nn.Module):
             self.gamma_residual_attn = nn.Parameter(torch.ones(self.d_model, **kw))
             self.gamma_residual_mlp = nn.Parameter(torch.ones(self.d_model, **kw))
 
+        # FSDP rejects 0-D parameters, so the schedule scalars are stored as
+        # length-1 vectors. Broadcasting in compute_layer_rope_factors collapses
+        # the leading (1,) to scalar-equivalent semantics.
         for gate_kind in self.GATE_KINDS:
             for branch in self.BRANCHES:
                 self.register_parameter(
                     f"alpha_{gate_kind}_{branch}",
-                    nn.Parameter(torch.tensor(float(alpha_init), **kw)),
+                    nn.Parameter(torch.full((1,), float(alpha_init), **kw)),
                 )
                 self.register_parameter(
                     f"beta_{gate_kind}_{branch}",
-                    nn.Parameter(torch.tensor(float(beta_init), **kw)),
+                    nn.Parameter(torch.full((1,), float(beta_init), **kw)),
                 )
                 self.register_parameter(
                     f"alpha_rot_{gate_kind}_{branch}",
-                    nn.Parameter(torch.tensor(float(alpha_rot_init), **kw)),
+                    nn.Parameter(torch.full((1,), float(alpha_rot_init), **kw)),
                 )
                 self.register_parameter(
                     f"beta_rot_{gate_kind}_{branch}",
-                    nn.Parameter(torch.tensor(float(beta_rot_init), **kw)),
+                    nn.Parameter(torch.full((1,), float(beta_rot_init), **kw)),
                 )
 
         self._alpha_init = float(alpha_init)

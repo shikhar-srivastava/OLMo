@@ -72,25 +72,25 @@ The default `configs/tiny/OLMo-{60M,150M,300M}.yaml` files reference `s3://ai2-l
 
 ## Local Data Download
 
-`scripts/download_olmo_data.py` downloads a proportional subset of training shards locally and generates `*-local.yaml` config files that point to local paths instead of streaming from `olmo-data.org`. It sends parallel HEAD requests to determine shard sizes, selects shards proportionally across all data source groups (preserving the original mixture), downloads them with resume support, and rewrites the YAML. Default data directory is `/scratch/ssrivas9/datasets/olmo-data`. Run once per model family before training:
+`scripts/download_olmo_data.py` downloads a proportional subset of training shards locally and generates `*-local.yaml` config files that point to local paths instead of streaming from `olmo-data.org`. It sends parallel HEAD requests to determine shard sizes, selects shards proportionally across all data source groups (preserving the original mixture), downloads them with resume support, and rewrites the YAML. Default data directory is `/dev/shm/ssrivastava/datasets/olmo-data`. Run once per model family before training:
 
 ```bash
 # Tiny models (60M / 150M / 300M share the same data)
 python scripts/download_olmo_data.py \
     --config configs/tiny/OLMo-60M-public.yaml \
-    --data-dir /scratch/ssrivas9/datasets/olmo-data \
+    --data-dir /dev/shm/ssrivastava/datasets/olmo-data \
     --target-tokens 40_000_000_000
 
 # 1B
 python scripts/download_olmo_data.py \
     --config configs/official-0724/OLMo-1B.yaml \
-    --data-dir /scratch/ssrivas9/datasets/olmo-data \
+    --data-dir /dev/shm/ssrivastava/datasets/olmo-data \
     --target-tokens 40_000_000_000
 
 # 7B
 python scripts/download_olmo_data.py \
     --config configs/official-0724/OLMo-7B.yaml \
-    --data-dir /scratch/ssrivas9/datasets/olmo-data \
+    --data-dir /dev/shm/ssrivastava/datasets/olmo-data \
     --target-tokens 40_000_000_000
 ```
 

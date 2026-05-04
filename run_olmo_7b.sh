@@ -11,7 +11,7 @@
 # Generate the local config with:
 #   python scripts/download_olmo_data.py \
 #       --config configs/official-0724/OLMo-7B.yaml \
-#       --data-dir /scratch/ssrivas9/datasets/olmo-data \
+#       --data-dir /dev/shm/ssrivastava/datasets/olmo-data \
 #       --target-tokens 40_000_000_000
 #
 # Memory profile (8× A100 80GB, FSDP):
@@ -71,7 +71,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-7B-${norm_type}_nfp32_wd0"
+RUN_NAME="OLMo-7B-${norm_type}"
 
 LOCAL_CONFIG="configs/official-0724/OLMo-7B-local.yaml"
 PUBLIC_CONFIG="configs/official-0724/OLMo-7B.yaml"
@@ -109,9 +109,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
         --save_interval_unsharded=10000 \
-        --device_train_microbatch_size=4 \
-        --optimizer.decay_norm_and_bias=false \
-        --model.rmsnorm_in_fp32=true
+        --device_train_microbatch_size=4
 
 echo ""
 echo "=========================================="

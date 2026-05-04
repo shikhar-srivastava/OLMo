@@ -19,7 +19,7 @@ The tiny model configs (60M/150M/300M) contain ~1.82T tokens spread across
 Usage:
     python scripts/download_olmo_data.py \\
         --config configs/tiny/OLMo-60M-public.yaml \\
-        --data-dir /scratch/ssrivas9/datasets/olmo-data \\
+        --data-dir /dev/shm/ssrivastava/datasets/olmo-data \\
         --target-tokens 40_000_000_000 \\
         --max-workers 16
 
@@ -339,7 +339,7 @@ def main():
     )
     parser.add_argument(
         "--data-dir",
-        default="/scratch/ssrivas9/datasets/olmo-data",
+        default="/dev/shm/ssrivastava/datasets/olmo-data",
         help="Root directory to download shards into. Subdirectory structure "
              "mirrors the olmo-data.org URL path.",
     )

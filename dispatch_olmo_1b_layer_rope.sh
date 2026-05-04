@@ -30,8 +30,11 @@ alpha_rot_init=${3:-0.0}
 beta_rot_init=${4:-0.0}
 rope_base_freq=${5:-10000.0}
 
-#./run_olmo_1b_layer_rope.sh pre        29515 "$alpha_init" "$beta_init" "$alpha_rot_init" "$beta_rot_init" "$rope_base_freq"
-./run_olmo_1b_layer_rope.sh norm_after 29515 "$alpha_init" "$beta_init" "$alpha_rot_init" "$beta_rot_init" "$rope_base_freq"
+export CUDA_VISIBLE_DEVICES=4,5,6,7
+./run_olmo_1b_layer_rope.sh pre        29517
+
+export CUDA_VISIBLE_DEVICES=4,5,6,7
+./run_olmo_1b_layer_rope.sh norm_after 29516
 
 echo ""
 echo "All 1B LayerRoPE training jobs completed!"

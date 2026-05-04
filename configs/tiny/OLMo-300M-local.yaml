@@ -103,27 +103,27 @@ evaluators:
       drop_last: true
       datasets:
         c4_en-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/c4_en/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/c4_en/val/part-0-00000.npy
         dolma_books-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_books/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_books/val/part-0-00000.npy
         dolma_common-crawl-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_common-crawl/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_common-crawl/val/part-0-00000.npy
         dolma_pes2o-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_pes2o/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_pes2o/val/part-0-00000.npy
         dolma_reddit-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_reddit/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_reddit/val/part-0-00000.npy
         dolma_stack-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_stack/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_stack/val/part-0-00000.npy
         dolma_wiki-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_wiki/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/dolma_wiki/val/part-0-00000.npy
         ice-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/ice/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/ice/val/part-0-00000.npy
         m2d2_s2orc-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/m2d2_s2orc/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/m2d2_s2orc/val/part-0-00000.npy
         pile-validation:
-        - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/pile/val/part-0-00000.npy
+        - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/pile/val/part-0-00000.npy
         wikitext_103-validation:
-          - /scratch/ssrivas9/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/wikitext_103/val/part-0-00000.npy
+          - /dev/shm/ssrivastava/datasets/olmo-data/eval-data/perplexity/v3_small_gptneox20b/wikitext_103/val/part-0-00000.npy
 
   ##########################
   # Downstream evaluations #
@@ -219,60 +219,60 @@ data:
   paths:
     ######### NON WEB DATA #########
     # ~> GUTENBERG BOOKS (5.256 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/books/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/books/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
     # ~> PES2O STEM PAPERS (57.21 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/pes2o/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/pes2o/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
     # ~> WIKIPEDIA & WIKIBOOKS (3.689 GT), repeated twice to up-sample
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/wiki/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/wiki/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/wiki/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_6-decontaminated/wiki/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
     # MEGAWIKA v1 (4.6 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/megawika/v1/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/megawika/v1/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/megawika/v1/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/megawika/v1/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
     # ~> REDPAJAMA STACKEXCHANGE (19.63 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/redpajama_v1_decon_fix/stackexchange/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/redpajama_v1_decon_fix/stackexchange/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
     # ~> REDPAJAMA ARXIV (19.63 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/redpajama_v1_decon_fix/stackexchange/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/redpajama_v1_decon_fix/stackexchange/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
     # ~> PROOFPILE2 ALGEBRAIC STACK (12.623 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/proof-pile-2/v0_decontaminated/algebraic-stack/train/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/proof-pile-2/v0_decontaminated/algebraic-stack/train/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
     # ~> PROOFPILE2 OPENWEBMATH (12.734 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/proof-pile-2/v0_decontaminated/open-web-math/train/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/proof-pile-2/v0_decontaminated/open-web-math/train/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
     # ~> TULU FLAN V1 (16.5 G v2-decontaminated-60M-shots_all-upweight_1-dialog_true-sep_newline)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/tulu_flan/v2-decontaminated-60M-shots_all-upweight_1-dialog_false-sep_newline/train/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/tulu_flan/v2-decontaminated-60M-shots_all-upweight_1-dialog_false-sep_newline/train/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/tulu_flan/v2-decontaminated-60M-shots_all-upweight_1-dialog_false-sep_newline/train/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/tulu_flan/v2-decontaminated-60M-shots_all-upweight_1-dialog_false-sep_newline/train/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
     # ~> CC NEWS (14.3 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/cc-news/v3/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/cc-news/v3/gpt-neox-olmo-dolma-v1_5/part-0-00000.npy
     ####################################
     ######### CODE #########
     # ~> STARCODER (263.775 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/starcoder/v0_decontaminated_doc_only/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/starcoder/v0_decontaminated_doc_only/gpt-neox-olmo-dolma-v1_5/part-00-00001.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/starcoder/v0_decontaminated_doc_only/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/starcoder/v0_decontaminated_doc_only/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/starcoder/v0_decontaminated_doc_only/gpt-neox-olmo-dolma-v1_5/part-00-00001.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/starcoder/v0_decontaminated_doc_only/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
     ####################################
     ######### WEB HIGH QUALITY #########
     # ~> C4 (138.4 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-002-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-003-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-004-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-002-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-003-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/c4/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001-fix/gpt-neox-olmo-dolma-v1_5/part-004-00000.npy
     # ~> REDDIT (79.9 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/reddit/v5-dedupe-pii-nsfw-toxic-fuzzydd-length/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/reddit/v5-dedupe-pii-nsfw-toxic-fuzzydd-length/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/reddit/v5-dedupe-pii-nsfw-toxic-fuzzydd-length/gpt-neox-olmo-dolma-v1_5/part-00-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/reddit/v5-dedupe-pii-nsfw-toxic-fuzzydd-length/gpt-neox-olmo-dolma-v1_5/part-01-00000.npy
     # ~> FALCON (547.341 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-002-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-003-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-004-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-002-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-003-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/falcon-refinedweb/v2-frac_005_100-qc_cc_multi_bin-paloma-rep-pii/gpt-neox-olmo-dolma-v1_5/part-004-00000.npy
     ####################################
     ######### WEB REST #########
     # ~> DOLMA CC HEAD 50% (178.4 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_head/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_head/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_head/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_head/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
     # ~> DOLMA CC MIDDLE 33% (242.05 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_middle/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_middle/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_middle/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_middle/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
     # ~> DOLMA CC TAIL 33% (191.4 GT)
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_tail/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_tail/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
-    - /scratch/ssrivas9/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_tail/gpt-neox-olmo-dolma-v1_5/part-002-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_tail/gpt-neox-olmo-dolma-v1_5/part-000-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_tail/gpt-neox-olmo-dolma-v1_5/part-001-00000.npy
+    - /dev/shm/ssrivastava/datasets/olmo-data/preprocessed/olmo-mix/v1_7-dd_ngram_dp_030-qc_cc_en_bin_001/cc_en_tail/gpt-neox-olmo-dolma-v1_5/part-002-00000.npy

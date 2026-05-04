@@ -9,7 +9,7 @@
 # Generate the local config with:
 #   python scripts/download_olmo_data.py \
 #       --config configs/official-0724/OLMo-1B.yaml \
-#       --data-dir /scratch/ssrivas9/datasets/olmo-data \
+#       --data-dir /dev/shm/ssrivastava/datasets/olmo-data \
 #       --target-tokens 40_000_000_000
 #
 # Usage:
@@ -65,7 +65,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-1B-${norm_type}_nfp32_wd0"
+RUN_NAME="OLMo-1B-${norm_type}"
 
 LOCAL_CONFIG="configs/official-0724/OLMo-1B-local.yaml"
 PUBLIC_CONFIG="configs/official-0724/OLMo-1B.yaml"
@@ -103,9 +103,7 @@ CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}" torchrun \
         --wandb.project="olmo-runs" \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
-        --device_train_microbatch_size=8 \
-        --optimizer.decay_norm_and_bias=false \
-        --model.rmsnorm_in_fp32=true
+        --device_train_microbatch_size=8
 
 echo ""
 echo "=========================================="
