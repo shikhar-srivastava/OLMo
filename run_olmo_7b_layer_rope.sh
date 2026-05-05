@@ -50,6 +50,7 @@ echo "=========================================="
 echo "OLMo 7B LayerRoPE training on 8x A100 80GB"
 echo "=========================================="
 echo "Variant         : ${variant}  (layer_rope.norm_after=${layer_rope_norm_after})"
+echo "Init            : normal, cutoff=3  (override; removing layer init to normal — default 7B config uses mitchell)"
 echo "Run name        : ${RUN_NAME}"
 echo "Master port     : ${MASTER_PORT}"
 echo "Config          : ${TRAIN_CONFIG}  [${CONFIG_MODE}]"
@@ -77,6 +78,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun \
         --max_duration='2e10T' \
         --save_interval_unsharded=10000 \
         --device_train_microbatch_size=4 \
+        --model.init_fn=normal \
+        --model.init_cutoff_factor=3 \
         --model.layer_rope.enabled=true \
         --model.layer_rope.norm_after="${layer_rope_norm_after}" \
         --model.layer_rope.alpha_init="${alpha_init}" \

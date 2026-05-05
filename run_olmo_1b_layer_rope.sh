@@ -50,6 +50,7 @@ echo "=========================================="
 echo "OLMo 1B LayerRoPE training on 4 GPUs"
 echo "=========================================="
 echo "Variant         : ${variant}  (layer_rope.norm_after=${layer_rope_norm_after})"
+echo "Init            : normal, cutoff=3  (override; removing layer init to normal — default 1B config uses mitchell)"
 echo "Run name        : ${RUN_NAME}"
 echo "Master port     : ${MASTER_PORT}"
 echo "GPUs            : ${CUDA_VISIBLE_DEVICES:-0,1,2,3}"
@@ -77,6 +78,8 @@ CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3}" torchrun \
         "${WANDB_ENTITY_ARG[@]}" \
         --max_duration='2e10T' \
         --device_train_microbatch_size=8 \
+        --model.init_fn=normal \
+        --model.init_cutoff_factor=3 \
         --model.layer_rope.enabled=true \
         --model.layer_rope.norm_after="${layer_rope_norm_after}" \
         --model.layer_rope.alpha_init="${alpha_init}" \
