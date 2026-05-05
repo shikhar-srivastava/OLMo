@@ -46,7 +46,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-7B-lns"
+RUN_NAME="OLMo-7B-lns_no_scaleinit"
 
 LOCAL_CONFIG="configs/official-0724/OLMo-7B-local.yaml"
 PUBLIC_CONFIG="configs/official-0724/OLMo-7B.yaml"

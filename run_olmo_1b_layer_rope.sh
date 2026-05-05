@@ -34,7 +34,7 @@ else
     WANDB_ENTITY_ARG=(--wandb.entity=null)
 fi
 
-RUN_NAME="OLMo-1B-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}"
+RUN_NAME="OLMo-1B-layer-rope-${variant}-a${alpha_init}-b${beta_init}-ar${alpha_rot_init}-br${beta_rot_init}-bf${rope_base_freq}_no_scaleinit"
 
 LOCAL_CONFIG="configs/official-0724/OLMo-1B-local.yaml"
 PUBLIC_CONFIG="configs/official-0724/OLMo-1B.yaml"
